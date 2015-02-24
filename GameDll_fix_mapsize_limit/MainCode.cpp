@@ -130,7 +130,7 @@ char * GetFileNameFromHandle( HANDLE hFile )
 
 
 
-inline bool IsGame( void ) // my offset + public
+bool IsGame( void ) // my offset + public
 {
 	return *( int* ) ( ( DWORD ) gamedll + 0xACF678 ) > 0 || *( int* ) ( ( DWORD ) gamedll + 0xAB62A4 ) > 0;
 }
@@ -138,10 +138,8 @@ inline bool IsGame( void ) // my offset + public
 bool ingame = false;
 
 // avoid antihack detection
-unsigned long __stdcall DisableIngameHookThread( void * )
+DWORD __stdcall DisableIngameHookThread( LPVOID )
 {
-	
-
 	while ( true )
 	{
 		if ( IsGame( ) )
@@ -177,7 +175,7 @@ struct backupmem
 vector<backupmem> avoidahdetect;
 
 
-unsigned long __stdcall DisableIngameHookThreadMethod2Detected( void * )
+DWORD __stdcall DisableIngameHookThreadMethod2Detected( LPVOID )
 {
 	DWORD gamedlladdr = ( DWORD ) gamedll;
 	unsigned char buffer[ 256 ];
@@ -233,8 +231,6 @@ unsigned long __stdcall DisableIngameHookThreadMethod2Detected( void * )
 			CopyMemory( nbm.backmem , backup , 256 );
 			avoidahdetect.push_back( nbm );
 			// end
-
-
 
 			VirtualProtect( ( LPVOID ) ( gamedlladdr + i ) , 256 , oldprot , 0 );
 		}
@@ -365,10 +361,6 @@ BOOL WINAPI DllMain( HINSTANCE hi , DWORD reason , LPVOID )
 			bypassthread = CreateThread( 0 , 0 , DisableIngameHookThread , 0 , 0 , 0 );
 
 		}
-		/*orgpCheckMap = ( pCheckMap )( (DWORD)gamedll + 0x01D9A0);
-
-		MH_CreateHook( orgpCheckMap , &myCheckMap , reinterpret_cast< void** >( &pCheckMapPtr ) );
-		MH_EnableHook( orgpCheckMap );*/
 	}
 	else if ( reason == DLL_PROCESS_DETACH )
 	{
