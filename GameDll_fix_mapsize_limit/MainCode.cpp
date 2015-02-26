@@ -6,6 +6,8 @@ char * GetFileNameFromHandle( HANDLE hFile );
 HMODULE gamedll;
 DWORD gamedllsize;
 
+int gameversion = 23;
+
 bool oldversion = false;
 
 typedef DWORD( __stdcall * pGetFileSize ) ( HANDLE file , LPDWORD lpFileSizeHigh );
@@ -26,7 +28,7 @@ DWORD  __stdcall myGetFileSize( HANDLE file , LPDWORD lpFileSizeHigh )
 			return retval;
 		}
 		delete[ ] filenamex;
-		
+
 		if ( !oldversion )
 		{
 			if ( retval > 0x7FFFFF )
@@ -47,7 +49,7 @@ DWORD  __stdcall myGetFileSize( HANDLE file , LPDWORD lpFileSizeHigh )
 }
 
 
-// 
+
 char * GetFileNameFromHandle( HANDLE hFile )
 {
 	TCHAR * pszFilename = new TCHAR[ MAX_PATH + 1 ];
@@ -129,9 +131,21 @@ char * GetFileNameFromHandle( HANDLE hFile )
 }
 
 
+struct backupmem
+{
+	DWORD dest;
+	BYTE backmem[ 256 ];
+	BYTE newmem[ 256 ];
+};
+
+vector<backupmem> avoidahdetect;
 
 bool IsGame( void ) // my offset + public
 {
+	if ( oldversion )
+		return false;
+	if ( gameversion == 24 )
+		return *( int* ) ( ( DWORD ) gamedll + 0xAE64D8 ) > 0;
 	return *( int* ) ( ( DWORD ) gamedll + 0xACF678 ) > 0 || *( int* ) ( ( DWORD ) gamedll + 0xAB62A4 ) > 0;
 }
 
@@ -165,15 +179,6 @@ DWORD __stdcall DisableIngameHookThread( LPVOID )
 }
 
 
-struct backupmem
-{
-	DWORD dest;
-	BYTE backmem[ 256 ];
-	BYTE newmem[ 256 ];
-};
-
-vector<backupmem> avoidahdetect;
-
 
 DWORD __stdcall DisableIngameHookThreadMethod2Detected( LPVOID )
 {
@@ -185,7 +190,7 @@ DWORD __stdcall DisableIngameHookThreadMethod2Detected( LPVOID )
 
 	for ( unsigned int i = 0; i < gamedllsize - 256; i++ )
 	{
-		
+
 		// Copy 256 bytes to buffer and copy
 		VirtualProtect( ( LPVOID ) ( gamedlladdr + i ) , 256 , PAGE_EXECUTE_READWRITE , &oldprot );
 		CopyMemory( buffer , ( LPVOID ) ( gamedlladdr + i ) , 256 );
@@ -194,7 +199,7 @@ DWORD __stdcall DisableIngameHookThreadMethod2Detected( LPVOID )
 
 		bool needrewrite = false;
 		int n;
-		
+
 		// Search size limit and replace
 		for ( n = 0; n < 251; n++ )
 		{
@@ -251,9 +256,9 @@ DWORD __stdcall DisableIngameHookThreadMethod2Detected( LPVOID )
 			if ( !ingame )
 			{
 				ingame = true;
-				
+
 				// Backup Game.dll memory to avoid antihack detection
-				
+
 				for ( unsigned int i = 0; i < avoidahdetect.size( ); i++ )
 				{
 					VirtualProtect( ( LPVOID ) avoidahdetect[ i ].dest , 256 , PAGE_EXECUTE_READWRITE , &oldprot );
@@ -266,10 +271,10 @@ DWORD __stdcall DisableIngameHookThreadMethod2Detected( LPVOID )
 		{
 			if ( ingame )
 			{
-				
+
 				// Restore modified memory
-				
-				
+
+
 				for ( unsigned int i = 0; i < avoidahdetect.size( ); i++ )
 				{
 					VirtualProtect( ( LPVOID ) avoidahdetect[ i ].dest , 256 , PAGE_EXECUTE_READWRITE , &oldprot );
@@ -303,10 +308,10 @@ BOOL WINAPI DllMain( HINSTANCE hi , DWORD reason , LPVOID )
 	{
 		// Initialize hook library
 		MH_Initialize( );
-		
+
 		// Get Kernel32.dll address
 		HMODULE krn32 = GetModuleHandle( "Kernel32.dll" );
-		
+
 		if ( !krn32 )
 		{
 			MessageBox( NULL , "No Kernel32.dll found!" , "ERROR" , MB_OK );
@@ -314,7 +319,7 @@ BOOL WINAPI DllMain( HINSTANCE hi , DWORD reason , LPVOID )
 		}
 
 		// Get GetFileSize func address
-		DWORD filesizeaddr = (DWORD)GetProcAddress( krn32 , "GetFileSize" );
+		DWORD filesizeaddr = ( DWORD ) GetProcAddress( krn32 , "GetFileSize" );
 
 		if ( !filesizeaddr )
 		{
@@ -322,11 +327,11 @@ BOOL WINAPI DllMain( HINSTANCE hi , DWORD reason , LPVOID )
 			return FALSE;
 		}
 
-		
+
 		// Create and enable hook
 		orgGetFileSize = ( pGetFileSize ) filesizeaddr;
 		MH_CreateHook( orgGetFileSize , &myGetFileSize , reinterpret_cast< void** >( &ptrGetFileSize ) );
-		MH_EnableHook( orgGetFileSize );
+
 
 		// Get Game.dll address
 		gamedll = GetModuleHandle( "Game.dll" );
@@ -341,11 +346,12 @@ BOOL WINAPI DllMain( HINSTANCE hi , DWORD reason , LPVOID )
 		CFileVersionInfo gdllver;
 		gdllver.Open( gamedll );
 		// Game.dll version (1.XX)
-		if ( gdllver.GetFileVersionMinor( ) > 23 )
+		gameversion = gdllver.GetFileVersionMinor( );
+		if ( gameversion > 23 )
 			oldversion = false;
 		else
 			oldversion = true;
-
+		gdllver.Close( );
 		// If a file named "forcefixsizelimit" exists then use "Method 2", else "Method 1"
 		if ( FileExists( ".\\forcefixsizelimit" ) )
 		{
@@ -355,14 +361,15 @@ BOOL WINAPI DllMain( HINSTANCE hi , DWORD reason , LPVOID )
 			gamedllsize = gamedllinfo->SizeOfImage;
 			// Clean "MODULEINFO"
 			delete gamedllinfo;
-			
+
 			// Create "Method 2" thread.  (Search by "signature")
 			bypassthread = CreateThread( 0 , 0 , DisableIngameHookThreadMethod2Detected , 0 , 0 , 0 );
 		}
 		else
 		{
-			// Create "Method 1" thread.  (HOOK GetFileSize)
+			// "Method 1"  (HOOK GetFileSize)
 			bypassthread = CreateThread( 0 , 0 , DisableIngameHookThread , 0 , 0 , 0 );
+			MH_EnableHook( orgGetFileSize );
 		}
 	}
 	else if ( reason == DLL_PROCESS_DETACH )
