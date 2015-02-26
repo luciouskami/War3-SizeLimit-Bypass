@@ -140,6 +140,8 @@ struct backupmem
 
 vector<backupmem> avoidahdetect;
 
+
+//I have only 1.26a version. don't know offsets for old versions
 bool IsGame( void ) // my offset + public
 {
 	if ( oldversion )
@@ -300,7 +302,7 @@ bool FileExists( LPCTSTR fname )
 
 
 HANDLE bypassthread;
-
+ 
 BOOL WINAPI DllMain( HINSTANCE hi , DWORD reason , LPVOID )
 {
 
@@ -347,10 +349,7 @@ BOOL WINAPI DllMain( HINSTANCE hi , DWORD reason , LPVOID )
 		gdllver.Open( gamedll );
 		// Game.dll version (1.XX)
 		gameversion = gdllver.GetFileVersionMinor( );
-		if ( gameversion > 23 )
-			oldversion = false;
-		else
-			oldversion = true;
+		oldversion = gameversion < 24;
 		gdllver.Close( );
 		// If a file named "forcefixsizelimit" exists then use "Method 2", else "Method 1"
 		if ( FileExists( ".\\forcefixsizelimit" ) )
