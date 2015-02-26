@@ -142,7 +142,7 @@ vector<backupmem> avoidahdetect;
 
 
 //I have only 1.26a version. don't know offsets for old versions
-bool IsGame( void ) // my offset + public
+bool IsGame( ) // my offset + public
 {
 	if ( oldversion )
 		return false;
@@ -302,7 +302,7 @@ bool FileExists( LPCTSTR fname )
 
 
 HANDLE bypassthread;
- 
+
 BOOL WINAPI DllMain( HINSTANCE hi , DWORD reason , LPVOID )
 {
 
