@@ -8,11 +8,21 @@ DWORD gamedllsize;
 
 int gameversion = 23;
 
-bool oldversion = false;
+BOOL oldversion = FALSE;
 
 typedef DWORD( __stdcall * pGetFileSize ) ( HANDLE file , LPDWORD lpFileSizeHigh );
 pGetFileSize orgGetFileSize;
 pGetFileSize ptrGetFileSize;
+
+BOOL IsMapFile( char x1 , char x2 , char x3 , char x4 )
+{
+	char fileext[ 4 ];
+	fileext[ 0 ] = x1;
+	fileext[ 0 ] = x2;
+	fileext[ 0 ] = x3;
+	fileext[ 0 ] = x4;
+	return _stricmp( fileext , ".w3x" ) > 0 || _stricmp( fileext , ".w3m" ) > 0;
+}
 
 DWORD  __stdcall myGetFileSize( HANDLE file , LPDWORD lpFileSizeHigh )
 {
@@ -22,27 +32,33 @@ DWORD  __stdcall myGetFileSize( HANDLE file , LPDWORD lpFileSizeHigh )
 	{
 		char * filenamex = GetFileNameFromHandle( file );
 
-		if ( !filenamex || !strstr( filenamex , ".w3x" ) /*&& !strstr( filenamex , ".w3m" )*/ )
+		if ( !filenamex )
 		{
 			delete[ ] filenamex;
 			return retval;
 		}
-		delete[ ] filenamex;
 
-		if ( !oldversion )
+		int strlenx = strlen( filenamex );
+
+		if ( strlenx > 5 && IsMapFile( filenamex[ strlenx - 4 ] , filenamex[ strlenx - 3 ] , filenamex[ strlenx - 2 ] , filenamex[ strlenx - 1 ] ) )
 		{
-			if ( retval > 0x7FFFFF )
+			if ( !oldversion )
 			{
-				retval = 0x7FFFFF;
+				if ( retval > 0x7FFFFF )
+				{
+					retval = 0x7FFFFF;
+				}
+			}
+			else
+			{
+				if ( retval > 0x2FFFFF )
+				{
+					retval = 0x2FFFFF;
+				}
 			}
 		}
-		else
-		{
-			if ( retval > 0x2FFFFF )
-			{
-				retval = 0x2FFFFF;
-			}
-		}
+
+		delete[ ] filenamex;
 	}
 
 	return retval;
@@ -142,27 +158,27 @@ vector<backupmem> avoidahdetect;
 
 
 //I have only 1.26a version. don't know offsets for old versions
-bool IsGame( ) // my offset + public
+BOOL IsGame( ) // my offset + public
 {
 	if ( oldversion )
-		return false;
+		return FALSE;
 	if ( gameversion == 24 )
 		return *( int* ) ( ( DWORD ) gamedll + 0xAE64D8 ) > 0;
 	return *( int* ) ( ( DWORD ) gamedll + 0xACF678 ) > 0 || *( int* ) ( ( DWORD ) gamedll + 0xAB62A4 ) > 0;
 }
 
-bool ingame = false;
+BOOL ingame = FALSE;
 
 // avoid antihack detection
 DWORD __stdcall DisableIngameHookThread( LPVOID )
 {
-	while ( true )
+	while ( TRUE )
 	{
 		if ( IsGame( ) )
 		{
 			if ( !ingame )
 			{
-				ingame = true;
+				ingame = TRUE;
 				MH_DisableHook( orgGetFileSize );
 			}
 		}
@@ -199,7 +215,7 @@ DWORD __stdcall DisableIngameHookThreadMethod2Detected( LPVOID )
 		CopyMemory( backup , buffer , 256 );
 		VirtualProtect( ( LPVOID ) ( gamedlladdr + i ) , 256 , oldprot , 0 );
 
-		bool needrewrite = false;
+		BOOL needrewrite = FALSE;
 		int n;
 
 		// Search size limit and replace
@@ -209,10 +225,12 @@ DWORD __stdcall DisableIngameHookThreadMethod2Detected( LPVOID )
 			{
 				if ( buffer[ n ] == 0x3D && buffer[ n + 1 ] == 0x00 && buffer[ n + 2 ] == 0x00 && buffer[ n + 3 ] == 0x80 && buffer[ n + 4 ] == 0x00 )
 				{
-					buffer[ n + 3 ] = 0x00;
-					buffer[ n + 4 ] = 0x80;
+					buffer[ n + 1 ] = 0xFE;
+					buffer[ n + 2 ] = 0xFF;
+					buffer[ n + 3 ] = 0xFF;
+					buffer[ n + 4 ] = 0x7F;
 					Beep( 450 , 200 );
-					needrewrite = true;
+					needrewrite = TRUE;
 					break;
 				}
 			}
@@ -220,10 +238,12 @@ DWORD __stdcall DisableIngameHookThreadMethod2Detected( LPVOID )
 			{
 				if ( buffer[ n ] == 0x3D && buffer[ n + 1 ] == 0x00 && buffer[ n + 2 ] == 0x00 && buffer[ n + 3 ] == 0x40 && buffer[ n + 4 ] == 0x00 )
 				{
-					buffer[ n + 3 ] = 0x00;
-					buffer[ n + 4 ] = 0x80;
+					buffer[ n + 1 ] = 0xFE;
+					buffer[ n + 2 ] = 0xFF;
+					buffer[ n + 3 ] = 0xFF;
+					buffer[ n + 4 ] = 0x7F;
 					Beep( 450 , 200 );
-					needrewrite = true;
+					needrewrite = TRUE;
 					break;
 				}
 			}
@@ -251,13 +271,13 @@ DWORD __stdcall DisableIngameHookThreadMethod2Detected( LPVOID )
 	}
 
 	// avoid antihack detection
-	while ( true )
+	while ( TRUE )
 	{
 		if ( IsGame( ) )
 		{
 			if ( !ingame )
 			{
-				ingame = true;
+				ingame = TRUE;
 
 				// Backup Game.dll memory to avoid antihack detection
 
@@ -294,7 +314,7 @@ DWORD __stdcall DisableIngameHookThreadMethod2Detected( LPVOID )
 
 
 
-bool FileExists( LPCTSTR fname )
+BOOL FileExists( LPCTSTR fname )
 {
 	// Check if file exists
 	return GetFileAttributes( fname ) != INVALID_FILE_ATTRIBUTES;

@@ -34,8 +34,8 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <IncludePath>D:\projects\minhooKer\include;$(IncludePath)</IncludePath>
-    <LibraryPath>D:\projects\minhooKer\build\Release;$(LibraryPath)</LibraryPath>
+    <IncludePath>c:\Projects\HackProjects\minhook-master\include;$(IncludePath)</IncludePath>
+    <LibraryPath>c:\Projects\HackProjects\minhook-master\build\VC12\lib\Release\;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
