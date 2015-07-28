@@ -16,12 +16,13 @@ pGetFileSize ptrGetFileSize;
 
 BOOL IsMapFile( char x1 , char x2 , char x3 , char x4 )
 {
-	char fileext[ 4 ];
+	char fileext[ 5 ];
+	memset( fileext , 0 , 5 );
 	fileext[ 0 ] = x1;
-	fileext[ 0 ] = x2;
-	fileext[ 0 ] = x3;
-	fileext[ 0 ] = x4;
-	return _stricmp( fileext , ".w3x" ) > 0 || _stricmp( fileext , ".w3m" ) > 0;
+	fileext[ 1 ] = x2;
+	fileext[ 2 ] = x3;
+	fileext[ 3 ] = x4;
+	return _stricmp( fileext , ".w3x" ) == 0 || _stricmp( fileext , ".w3m" ) == 0;
 }
 
 DWORD  __stdcall myGetFileSize( HANDLE file , LPDWORD lpFileSizeHigh )
